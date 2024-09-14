@@ -206,7 +206,7 @@ defmodule ResistanceWeb.GameLive do
       "Lobby" -> false
       "Defeat" -> true
       "Victory" -> true
-      true -> player.is_spy
+      _ -> player.is_spy
     end
   end
 
