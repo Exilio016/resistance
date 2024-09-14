@@ -74,7 +74,13 @@ defmodule Resistance.Games.Game do
 
   def get_team_size(game) do
     len = length(game.players)
-    mission_num = Missions.get_mission_count(game)
+
+    mission_num =
+      if game.state == "Mission" do
+        Missions.get_mission_count(game) - 1
+      else
+        Missions.get_mission_count(game)
+      end
 
     cond do
       len == 5 ->
