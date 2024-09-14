@@ -95,16 +95,18 @@ defmodule ResistanceWeb.GameLive do
     {:noreply, socket}
   end
 
-  def handle_info(%{id: "mission-end", mission_players: mission_players}, socket) do
+  def handle_info(
+        %{id: "mission-end", mission_players: mission_players, mission_result: result},
+        socket
+      ) do
     id = socket.assigns.game.id
 
     socket =
       try do
         game = Games.get_game!(id)
-        result = length(Enum.filter(game.players, fn %{vote: vote} -> vote end))
 
         vote_result =
-          if result > floor(length(game.players) / 2) do
+          if result do
             "The mission was succesful!"
           else
             "The mission failed!"

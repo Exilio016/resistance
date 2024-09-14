@@ -222,7 +222,8 @@ defmodule Resistance.Games.Game do
 
     PubSub.broadcast(Resistance.PubSub, "game-#{game.id}", %{
       id: "mission-end",
-      mission_players: players
+      mission_players: players,
+      mission_result: result
     })
   end
 
