@@ -35,18 +35,18 @@
 // Include phoenix_html to handle method=PUT/DELETE in forms and buttons.
 import "phoenix_html"
 // Establish Phoenix Socket and LiveView configuration.
-import {Socket} from "phoenix"
-import {LiveSocket} from "phoenix_live_view"
+import { Socket } from "phoenix"
+import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
-  longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken}
+    longPollFallbackMs: 2500,
+    params: { _csrf_token: csrfToken }
 })
 
 // Show progress bar on live navigation and form submits
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
@@ -59,8 +59,8 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
-let selectedId=null;
-window.addEventListener("games:select-game", (event)=> {
+let selectedId = null;
+window.addEventListener("games:select-game", (event) => {
     if (selectedId) {
         let old = document.getElementById(selectedId);
         old.classList.remove("bg-emerald-900");
@@ -69,23 +69,15 @@ window.addEventListener("games:select-game", (event)=> {
     event.target.classList.add("bg-emerald-900");
 })
 window.addEventListener("games:join-game", () => {
-    if(selectedId) {
+    if (selectedId) {
         let components = selectedId.split('-');
         window.location.href = "/game/" + components[1]
     }
 })
-window.addEventListener("phx:show-modal", (event)=> {
-    let modal = document.getElementById(event.detail.id);
-    modal.showModal();
-})
-window.addEventListener("phx:close-modal", (event)=> {
-    let modal = document.getElementById(event.detail.id);
-    modal.close();
-})
 
 window.onclick = function(event) {
-    if(event.target.id === "vote-modal" || event.target.id === "mission-modal" ) {
-        event.target.close()
+    if (event.target.id === "vote-modal" || event.target.id === "mission-modal") {
+        event.target.querySelector("button").click();
     }
 }
 

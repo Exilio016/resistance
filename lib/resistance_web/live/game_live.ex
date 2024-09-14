@@ -24,7 +24,8 @@ defmodule ResistanceWeb.GameLive do
   use ResistanceWeb, :live_view
 
   def mount(%{"id" => id}, _session, socket) do
-    socket = assign(socket, vote_end: false, mission_end: false, mission_players: [])
+    socket =
+      assign(socket, vote_end: false, mission_end: false, vote_result: nil, mission_players: [])
 
     socket =
       try do
@@ -117,7 +118,6 @@ defmodule ResistanceWeb.GameLive do
         |> assign(mission_end: true)
         |> assign(vote_result: vote_result)
         |> assign(mission_players: mission_players)
-        |> push_event("show-modal", %{id: "mission-modal"})
       rescue
         Ecto.NoResultsError ->
           socket
@@ -147,7 +147,6 @@ defmodule ResistanceWeb.GameLive do
         |> assign(game: game)
         |> assign(vote_end: true)
         |> assign(vote_result: vote_result)
-        |> push_event("show-modal", %{id: "vote-modal"})
       rescue
         Ecto.NoResultsError ->
           socket
@@ -293,6 +292,14 @@ defmodule ResistanceWeb.GameLive do
     {:noreply, push_navigate(socket, to: "/")}
   end
 
+  def handle_event("close-vote-modal", _params, socket) do
+    {:noreply, assign(socket, vote_end: false)}
+  end
+
+  def handle_event("close-mission-modal", _params, socket) do
+    {:noreply, assign(socket, mission_end: false)}
+  end
+
   def is_user_leader(game, user_id) do
     leader = Enum.at(game.players, game.leader)
     leader.user_id == user_id
@@ -305,41 +312,39 @@ defmodule ResistanceWeb.GameLive do
 
   def result_dialog(assigns) do
     ~H"""
-    <dialog class="text-neutral-100 bg-neutral-900" id="vote-modal">
-      <%= if @vote_end do %>
-        <h2 class="text-xl text-center text-neutral-100"><%= @vote_result %></h2>
-        <table class="min-w-full divide-y divide-neutral-700 text-neutral-100 overflow-y-scroll">
-          <thead>
-            <tr>
-              <th scope="col" class="px-6 py-1 uppercase font-medium text-start text-neutral-500">
-                Player
-              </th>
-              <th scope="col" class="px-6 py-1 uppercase font-medium text-end text-neutral-500">
-                Vote
-              </th>
+    <dialog class="text-neutral-100 bg-neutral-900" id="vote-modal" open={@vote_end}>
+      <h2 class="text-xl text-center text-neutral-100"><%= @vote_result %></h2>
+      <table class="min-w-full divide-y divide-neutral-700 text-neutral-100 overflow-y-scroll">
+        <thead>
+          <tr>
+            <th scope="col" class="px-6 py-1 uppercase font-medium text-start text-neutral-500">
+              Player
+            </th>
+            <th scope="col" class="px-6 py-1 uppercase font-medium text-end text-neutral-500">
+              Vote
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for player <- @game.players do %>
+            <% user = Users.get_user!(player.user_id) %>
+            <tr id={"vote-#{player.id}"} class="hover:bg-neutral-700">
+              <td class="px-6 py-2 text-start"><%= user.email %></td>
+              <td class="px-6 py-2 text-end">
+                <input type="checkbox" checked={player.vote} disabled />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <%= for player <- @game.players do %>
-              <% user = Users.get_user!(player.user_id) %>
-              <tr id={"vote-#{player.id}"} class="hover:bg-neutral-700">
-                <td class="px-6 py-2 text-start"><%= user.email %></td>
-                <td class="px-6 py-2 text-end">
-                  <input type="checkbox" checked={player.vote} disabled />
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-        <div class="flex relative justify-center mx-6 my-4">
-          <button
-            class="border border-transparent rounded-lg px-4 py-2 bg-emerald-900 hover:bg-emerald-700"
-            phx-click={JS.dispatch("phx:close-modal", detail: %{id: "vote-modal"})}
-          >
-            Close
-          </button>
-        </div>
-      <% end %>
+          <% end %>
+        </tbody>
+      </table>
+      <div class="flex relative justify-center mx-6 my-4">
+        <button
+          class="border border-transparent rounded-lg px-4 py-2 bg-emerald-900 hover:bg-emerald-700"
+          phx-click="close-vote-modal"
+        >
+          Close
+        </button>
+      </div>
     </dialog>
     """
   end
@@ -351,40 +356,38 @@ defmodule ResistanceWeb.GameLive do
       assign(assigns, %{success: success, failures: length(assigns.mission_players) - success})
 
     ~H"""
-    <dialog class="text-neutral-100 bg-neutral-900" id="mission-modal">
-      <%= if @mission_end do %>
-        <h2 class="text-xl text-center text-neutral-100"><%= @vote_result %></h2>
-        <div class="flex justify-between py-4">
-          <span class="text-neutral-100">
-            Success: <%= @success %>, Failures <%= @failures %>
-          </span>
-        </div>
-        <table class="min-w-full divide-y divide-neutral-700 text-neutral-100 overflow-y-scroll">
-          <thead>
-            <tr>
-              <th scope="col" class="px-6 py-1 uppercase font-medium text-start text-neutral-500">
-                Player
-              </th>
+    <dialog class="text-neutral-100 bg-neutral-900" id="mission-modal" open={@mission_end}>
+      <h2 class="text-xl text-center text-neutral-100"><%= @vote_result %></h2>
+      <div class="flex justify-between py-4">
+        <span class="text-neutral-100">
+          Success: <%= @success %>, Failures <%= @failures %>
+        </span>
+      </div>
+      <table class="min-w-full divide-y divide-neutral-700 text-neutral-100 overflow-y-scroll">
+        <thead>
+          <tr>
+            <th scope="col" class="px-6 py-1 uppercase font-medium text-start text-neutral-500">
+              Player
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for player <- @mission_players do %>
+            <% user = Users.get_user!(player.user_id) %>
+            <tr class="hover:bg-neutral-700">
+              <td class="px-6 py-2 text-start"><%= user.email %></td>
             </tr>
-          </thead>
-          <tbody>
-            <%= for player <- @mission_players do %>
-              <% user = Users.get_user!(player.user_id) %>
-              <tr class="hover:bg-neutral-700">
-                <td class="px-6 py-2 text-start"><%= user.email %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-        <div class="flex relative justify-center mx-6 my-4">
-          <button
-            class="border border-transparent rounded-lg px-4 py-2 bg-emerald-900 hover:bg-emerald-700"
-            phx-click={JS.dispatch("phx:close-modal", detail: %{id: "mission-modal"})}
-          >
-            Close
-          </button>
-        </div>
-      <% end %>
+          <% end %>
+        </tbody>
+      </table>
+      <div class="flex relative justify-center mx-6 my-4">
+        <button
+          class="border border-transparent rounded-lg px-4 py-2 bg-emerald-900 hover:bg-emerald-700"
+          phx-click="close-mission-modal"
+        >
+          Close
+        </button>
+      </div>
     </dialog>
     """
   end
@@ -406,6 +409,8 @@ defmodule ResistanceWeb.GameLive do
 
     ~H"""
     <h2 class="text-xl text-center text-neutral-100"><%= @game.name %></h2>
+    <%= result_dialog(assigns) %>
+    <%= mission_dialog(assigns) %>
     <%= if @game.state != "Lobby" do %>
       <h2 class="text-xl text-center text-neutral-100">
         Role: <%= if get_current_player(@game, @current_user.id).is_spy do
@@ -605,8 +610,6 @@ defmodule ResistanceWeb.GameLive do
           </button>
       <% end %>
     </div>
-    <%= result_dialog(assigns) %>
-    <%= mission_dialog(assigns) %>
     """
   end
 end
