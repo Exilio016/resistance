@@ -109,6 +109,16 @@ defmodule Resistance.Users do
     User.registration_changeset(user, attrs, hash_password: false, validate_email: false)
   end
 
+  def register_oauth_user(attrs) do
+    %User{}
+    |> User.provider_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def change_user_provider(%User{} = user, attrs \\ %{}) do
+    User.provider_changeset(user, attrs, hash_password: false, validate_email: false)
+  end
+
   ## Settings
 
   @doc """

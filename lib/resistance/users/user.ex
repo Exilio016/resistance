@@ -23,6 +23,8 @@ defmodule Resistance.Users.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :naive_datetime
+    field :provider, :string
+    field :token, :string
     has_many :games, Resistance.Games.Game
 
     timestamps(type: :utc_datetime)
@@ -69,7 +71,7 @@ defmodule Resistance.Users.User do
   defp validate_password(changeset, opts) do
     changeset
     |> validate_required([:password])
-    |> validate_length(:password, min: 12, max: 72)
+    |> validate_length(:password, min: 8, max: 72)
     # Examples of additional password validation:
     # |> validate_format(:password, ~r/[a-z]/, message: "at least one lower case character")
     # |> validate_format(:password, ~r/[A-Z]/, message: "at least one upper case character")
@@ -171,5 +173,12 @@ defmodule Resistance.Users.User do
     else
       add_error(changeset, :current_password, "is not valid")
     end
+  end
+
+  def provider_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:email, :provider, :token])
+    |> validate_email(opts)
+    |> validate_required([:email, :provider, :token])
   end
 end
